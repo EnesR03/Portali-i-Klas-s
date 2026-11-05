@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<!-- Vite and static hosts use index.html as the application entry point. -->
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistemi i Ankesave dhe Kërkesave të Klasës</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header / Navbar -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('student')">
+                <div class="bg-white/10 p-2 rounded-lg">
+                    <i class="fa-solid fa-clipboard-list text-xl text-indigo-200"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg sm:text-xl leading-tight">Portali i Klasës</h1>
+                    <p class="text-xs text-indigo-200 hidden sm:block">Zëri yt për Mbledhjen e Kryetarëve</p>
+                </div>
+            </div>
+            
+            <div id="nav-actions" class="flex items-center space-x-3">
+                <button id="btn-student-view" onclick="switchTab('student')" class="bg-indigo-800 hover:bg-indigo-900 text-white text-sm px-3.5 py-2 rounded-xl font-medium transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-pen"></i>
+                    <span>Dërgo Formular</span>
+                </button>
+                <button id="btn-admin-view" onclick="openAdminModal()" class="bg-white/10 hover:bg-white/20 text-white border border-white/20 text-sm px-3.5 py-2 rounded-xl font-medium transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span id="admin-btn-text">Admin Log In</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- STUDENT SECTION: Form to Submit Request/Complaint -->
+        <section id="section-student" class="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 transition-all">
+            <div class="border-b border-slate-100 pb-4 mb-6">
+                <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-indigo-600"></i> Dërgo një Ankesë apo Kërkesë
+                </h2>
+                <p class="text-slate-500 text-sm mt-1">
+                    Plotësoni me poshtë idetë, ankesat ose kërkesat tuaja. Kryetari i klasës do t'i shqyrtojë ato për t'i dërguar në Mbledhjen e Kryetarëve.
+                </p>
+            </div>
+
+            <!-- Toast / Alert inside form -->
+            <div id="student-alert" class="hidden mb-4 p-4 rounded-xl text-sm font-medium flex items-center justify-between transition-all"></div>
+
+            <form id="submissionForm" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                
+                <!-- Submission Type: Ankesë apo Kërkesë -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Lloji i Shkresës <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="relative flex items-center justify-center p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50 transition">
+                            <input type="radio" name="type" value="Ankesë" checked class="sr-only">
+                            <div class="text-center flex items-center space-x-2">
+                                <i class="fa-solid fa-circle-exclamation text-amber-500 text-base"></i>
+                                <span class="font-medium text-slate-800 text-sm sm:text-base">Ankesë</span>
+                            </div>
+                        </label>
+                        <label class="relative flex items-center justify-center p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50 transition">
+                            <input type="radio" name="type" value="Kërkesë" class="sr-only">
+                            <div class="text-center flex items-center space-x-2">
+                                <i class="fa-solid fa-lightbulb text-indigo-500 text-base"></i>
+                                <span class="font-medium text-slate-800 text-sm sm:text-base">Kërkesë</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Anonymity Option -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Si dëshironi të dërgoni?</label>
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="anonymity" value="anonymous" checked onchange="toggleNameField()" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <span class="ml-2 text-sm text-slate-700 font-medium"><i class="fa-solid fa-user-secret mr-1 text-slate-500"></i> Anonim</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="anonymity" value="named" onchange="toggleNameField()" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <span class="ml-2 text-sm text-slate-700 font-medium"><i class="fa-solid fa-user mr-1 text-slate-500"></i> Me Emër & Mbiemër</span>
+                        </label>
+                    </div>
+
+                    <!-- Name Field (Hidden by default) -->
+                    <div id="nameInputGroup" class="hidden mt-4 pt-3 border-t border-slate-200">
+                        <label for="studentName" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Emri dhe Mbiemri Juaj</label>
+                        <input type="text" id="studentName" placeholder="Emri Mbiemri" class="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                    </div>
+                </div>
+
+                <!-- Category & Priority Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="category" class="block text-sm font-semibold text-slate-700 mb-1">Kategoria <span class="text-red-500">*</span></label>
+                        <select id="category" required class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none transition">
+                            <option value="" disabled selected>Zgjidh kategorinë...</option>
+                            <option value="Mësimdhënia & Notimi">Mësimdhënia & Notimi</option>
+                            <option value="Infrastruktura & Klasa">Infrastruktura & Klasa</option>
+                            <option value="Orari & Pushimet">Orari & Pushimet</option>
+                            <option value="Aktivitete & Ekskursione">Aktivitete & Ekskursione</option>
+                            <option value="Tjetër">Tjetër</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="priority" class="block text-sm font-semibold text-slate-700 mb-1">Niveli i Rëndësisë <span class="text-red-500">*</span></label>
+                        <select id="priority" required class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none transition">
+                            <option value="E Ulët">E Ulët</option>
+                            <option value="Mesatare" selected>Mesatare</option>
+                            <option value="E Lartë">E Lartë</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <label for="title" class="block text-sm font-semibold text-slate-700 mb-1">Titulli i shkurtër <span class="text-red-500">*</span></label>
+                    <input type="text" id="title" required placeholder="p.sh. Rregullimi i projektorit në klasë" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none transition">
+                </div>
+
+                <!-- Detailed Description -->
+                <div>
+                    <label for="description" class="block text-sm font-semibold text-slate-700 mb-1">Përshkrimi i detajuar <span class="text-red-500">*</span></label>
+                    <textarea id="description" rows="4" required placeholder="Shpjegoni me detaje arsyen ose propozimin tuaj..." class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none transition"></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Dërgo Njoftimin</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- ADMIN SECTION: Dashboard & Review -->
+        <section id="section-admin" class="hidden space-y-6">
+            
+            <!-- Notification Alert inside Admin -->
+            <div id="admin-toast" class="hidden p-4 rounded-xl text-sm font-medium flex items-center justify-between"></div>
+
+            <!-- Top Dashboard Stats & Actions -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5 py-1 rounded-full uppercase">Paneli i Kryetarit</span>
+                        <span class="text-xs text-slate-400">| Sesi Aktiv</span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900 mt-1">Shqyrtimi i Ankesave & Kërkesave</h2>
+                    <p class="text-slate-500 text-sm">Zgjidhni pikat (me checkbox) për t'i përfshirë në dokumentin PDF për mbledhjen.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="logoutAdmin()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center space-x-2">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Dalja</span>
+                    </button>
+                    
+                    <button onclick="generatePDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow flex items-center space-x-2 transition">
+                        <i class="fa-solid fa-file-pdf text-lg"></i>
+                        <span>Gjenero PDF (<span id="selected-count">0</span>)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Filtro:</span>
+                    <button onclick="filterItems('all')" id="filter-all" class="filter-btn bg-indigo-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition">Të Gjitha (<span id="cnt-all">0</span>)</button>
+                    <button onclick="filterItems('Ankesë')" id="filter-Ankesë" class="filter-btn bg-slate-100 text-slate-600 hover:bg-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition">Ankesa (<span id="cnt-ankesa">0</span>)</button>
+                    <button onclick="filterItems('Kërkesë')" id="filter-Kërkesë" class="filter-btn bg-slate-100 text-slate-600 hover:bg-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition">Kërkesa (<span id="cnt-kerkesa">0</span>)</button>
+                    <button onclick="filterItems('selected')" id="filter-selected" class="filter-btn bg-slate-100 text-slate-600 hover:bg-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition">Të Përzgjedhura (<span id="cnt-selected">0</span>)</button>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleSelectAll()" class="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-1">
+                        <i class="fa-regular fa-square-check"></i> Zgjidh të gjitha
+                    </button>
+                    <span class="text-slate-300">|</span>
+                    <button onclick="clearAllData()" class="text-xs text-red-500 font-semibold hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-trash"></i> Fshij të Gjitha
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submissions Grid / List -->
+            <div id="submissions-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Rendered dynamically via JS -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
+                <i class="fa-solid fa-inbox text-4xl text-slate-300 mb-3"></i>
+                <h3 class="text-lg font-semibold text-slate-700">Nuk ka asnjë element për të shfaqur</h3>
+                <p class="text-sm text-slate-400 max-w-sm mx-auto mt-1">Nuk u gjet asnjë ankesë apo kërkesë me këtë filtër.</p>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            Sistemi i Menaxhimit të Klasës &copy; <span id="year"></span> | Përgatitur për Mbledhjen e Kryetarëve
+            <p class="mt-1 font-semibold text-slate-600">Ky website u krijua nga Enes Rexhaj, XI-A</p>
+        </div>
+    </footer>
+
+    <!-- Admin Login Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative transform transition-all">
+            <button onclick="closeAdminModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900">Kyçja si Admin</h3>
+                <p class="text-xs text-slate-500 mt-1">Shkruani fjalëkalimin për të hyrë në panelin e kryetarit.</p>
+            </div>
+            
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label for="adminPassword" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Fjalëkalimi</label>
+                    <input type="password" id="adminPassword" required placeholder="Shkruaj fjalëkalimin..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none">
+                </div>
+                <div id="admin-error" class="hidden text-xs text-red-600 bg-red-50 p-2.5 rounded-lg text-center font-medium border border-red-200">
+                    Fjalëkalimi është i gabuar!
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl shadow transition">
+                    Hyr në Panel
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Printable PDF HTML Template Container -->
+    <div id="pdf-container" style="display: none;">
+        <div id="pdf-content" style="padding: 30px; font-family: 'Inter', sans-serif; color: #1e293b; background: #ffffff;">
+            <!-- PDF Header -->
+            <div style="border-bottom: 2px solid #312e81; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1 style="font-size: 20px; font-weight: 800; color: #1e1b4b; margin: 0; text-transform: uppercase;">RAPORT ZYRTAR I KLASËS</h1>
+                    <p style="font-size: 13px; font-weight: 600; color: #4338ca; margin: 4px 0 0 0;">Për Mbledhjen e Kryetarëve të Shkollës</p>
+                    <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">Dokument Zyrtar i Ankesave dhe Kërkesave të Përzgjedhura</p>
+                </div>
+                <div style="text-align: right; font-size: 11px; color: #475569;">
+                    <p style="margin: 0;"><span style="font-weight: 700;">Data:</span> <span id="pdf-date">--/--/----</span></p>
+                    <p style="margin: 2px 0 0 0;"><span style="font-weight: 700;">Statusi:</span> Përfundimtar</p>
+                    <p style="margin: 2px 0 0 0;"><span style="font-weight: 700;">Pikat gjithsej:</span> <span id="pdf-total-items">0</span></p>
+                </div>
+            </div>
+
+            <!-- PDF Notice -->
+            <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; padding: 10px 14px; margin-bottom: 20px; font-size: 11px; color: #334155; border-radius: 4px;">
+                Kjo shkresë përmban ankesat dhe kërkesat e zgjedhura nga Kryetari i Klasës për t'u shqyrtuar zyrtarisht gjatë mbledhjes së kryetarëve.
+            </div>
+
+            <!-- PDF Table -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 11px;">
+                <thead>
+                    <tr style="background-color: #1e1b4b; color: #ffffff; text-align: left; font-size: 10px; text-transform: uppercase;">
+                        <th style="padding: 8px; border: 1px solid #1e1b4b; width: 30px; text-align: center;">#</th>
+                        <th style="padding: 8px; border: 1px solid #1e1b4b; width: 70px;">Lloji</th>
+                        <th style="padding: 8px; border: 1px solid #1e1b4b; width: 120px;">Kategoria</th>
+                        <th style="padding: 8px; border: 1px solid #1e1b4b;">Titulli & Detajet</th>
+                        <th style="padding: 8px; border: 1px solid #1e1b4b; width: 80px;">Dërguesi</th>
+                        <th style="padding: 8px; border: 1px solid #1e1b4b; width: 70px; text-align: center;">Rëndësia</th>
+                    </tr>
+                </thead>
+                <tbody id="pdf-table-body">
+                    <!-- Rows inserted via JavaScript -->
+                </tbody>
+            </table>
+
+            <!-- PDF Signatures -->
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #cbd5e1; display: flex; justify-content: space-between; font-size: 11px;">
+                <div style="text-align: center; width: 180px;">
+                    <div style="border-bottom: 1px solid #94a3b8; height: 35px; margin-bottom: 4px;"></div>
+                    <p style="font-weight: 700; color: #1e293b; margin: 0;">Kryetari i Klasës (Enes Rexhaj)</p>
+                    <p style="font-size: 9px; color: #64748b; margin: 2px 0 0 0;">(Nënshkrimi)</p>
+                </div>
+                <div style="text-align: center; width: 180px;">
+                    <div style="border-bottom: 1px solid #94a3b8; height: 35px; margin-bottom: 4px;"></div>
+                    <p style="font-weight: 700; color: #1e293b; margin: 0;">Nënkryetari i Klasës</p>
+                    <p style="font-size: 9px; color: #64748b; margin: 2px 0 0 0;">(Nënshkrimi)</p>
+                </div>
+            </div>
+
+            <!-- PDF Footer Author Note -->
+            <div style="margin-top: 30px; text-align: center; font-size: 9px; color: #64748b; border-top: 1px dashed #e2e8f0; padding-top: 8px;">
+                Ky website u krijua nga Enes Rexhaj, XI-A
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Data Store (LocalStorage backed)
+        const DEFAULT_SUBMISSIONS = [
+            {
+                id: '1698765432101',
+                type: 'Ankesë',
+                anonymity: 'anonymous',
+                sender: 'Anonim',
+                category: 'Infrastruktura & Klasa',
+                priority: 'E Lartë',
+                title: 'Projektori në sallë nuk punon mirë',
+                description: 'Ngjyra e projektorit është prishur dhe po na vështirëson ndjekjen e ligjëratave gjatë orëve me prezantime.',
+                selected: true,
+                date: '04/11/2026'
+            },
+            {
+                id: '1698765432102',
+                type: 'Kërkesë',
+                anonymity: 'named',
+                sender: 'Arben Krasniqi',
+                category: 'Aktivitete & Ekskursione',
+                priority: 'Mesatare',
+                title: 'Organizimi i një vizite në Muzeun Kombëtar',
+                description: 'Propozojmë të organizojmë një vizitë mësimore gjatë javës së ardhshme pasi lidhet me temën e Historisë.',
+                selected: false,
+                date: '05/11/2026'
+            }
+        ];
+
+        let submissions = [];
+        let isAdminLoggedIn = false;
+        let currentFilter = 'all';
+
+        // Initialize state on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('year').textContent = new Date().getFullYear();
+            
+            // Load items from LocalStorage or seed defaults
+            const stored = localStorage.getItem('class_submissions_data');
+            if (stored) {
+                try {
+                    submissions = JSON.parse(stored);
+                } catch (err) {
+                    submissions = [...DEFAULT_SUBMISSIONS];
+                }
+            } else {
+                submissions = [...DEFAULT_SUBMISSIONS];
+                saveData();
+            }
+
+            renderSubmissions();
+            updateCounts();
+        });
+
+        // Save state to LocalStorage
+        function saveData() {
+            localStorage.setItem('class_submissions_data', JSON.stringify(submissions));
+        }
+
+        // Toggle Name Input depending on anonymity checkbox
+        function toggleNameField() {
+            const anonymity = document.querySelector('input[name="anonymity"]:checked').value;
+            const nameGroup = document.getElementById('nameInputGroup');
+            const nameInput = document.getElementById('studentName');
+
+            if (anonymity === 'named') {
+                nameGroup.classList.remove('hidden');
+                nameInput.setAttribute('required', 'true');
+            } else {
+                nameGroup.classList.add('hidden');
+                nameInput.removeAttribute('required');
+                nameInput.value = '';
+            }
+        }
+
+        // Handle Submission from Student Form
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const type = document.querySelector('input[name="type"]:checked').value;
+            const anonymity = document.querySelector('input[name="anonymity"]:checked').value;
+            const nameInput = document.getElementById('studentName').value.trim();
+            const category = document.getElementById('category').value;
+            const priority = document.getElementById('priority').value;
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+
+            const newEntry = {
+                id: Date.now().toString(),
+                type: type,
+                anonymity: anonymity,
+                sender: (anonymity === 'named' && nameInput !== '') ? nameInput : 'Anonim',
+                category: category,
+                priority: priority,
+                title: title,
+                description: description,
+                selected: false,
+                date: new Date().toLocaleDateString('sq-AL')
+            };
+
+            submissions.unshift(newEntry);
+            saveData();
+
+            // Display success message
+            const alertBox = document.getElementById('student-alert');
+            alertBox.className = 'mb-4 p-4 rounded-xl text-sm font-medium flex items-center justify-between bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-sm';
+            alertBox.innerHTML = `
+                <span><i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i> ${type} juaj u dërgua me sukses te kryetari!</span>
+                <button type="button" onclick="this.parentElement.classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            alertBox.classList.remove('hidden');
+
+            // Reset Form fields
+            document.getElementById('submissionForm').reset();
+            toggleNameField();
+            renderSubmissions();
+            updateCounts();
+
+            // Auto scroll to alert
+            alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Switch between Student form & Admin dashboard
+        function switchTab(tab) {
+            const studentSec = document.getElementById('section-student');
+            const adminSec = document.getElementById('section-admin');
+
+            if (tab === 'student') {
+                studentSec.classList.remove('hidden');
+                adminSec.classList.add('hidden');
+            } else if (tab === 'admin') {
+                if (!isAdminLoggedIn) {
+                    openAdminModal();
+                } else {
+                    studentSec.classList.add('hidden');
+                    adminSec.classList.remove('hidden');
+                    renderSubmissions();
+                }
+            }
+        }
+
+        // Admin Modal Actions
+        function openAdminModal() {
+            if (isAdminLoggedIn) {
+                switchTab('admin');
+            } else {
+                document.getElementById('adminModal').classList.remove('hidden');
+                document.getElementById('adminPassword').focus();
+            }
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.add('hidden');
+            document.getElementById('admin-error').classList.add('hidden');
+            document.getElementById('adminPassword').value = '';
+        }
+
+        // Admin Authentication
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('adminPassword').value;
+            
+            // Strictly check password
+            if (pass === 'Enessi.1234') {
+                isAdminLoggedIn = true;
+                closeAdminModal();
+                document.getElementById('admin-btn-text').textContent = 'Paneli Admin';
+                switchTab('admin');
+            } else {
+                document.getElementById('admin-error').classList.remove('hidden');
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            document.getElementById('admin-btn-text').textContent = 'Admin Log In';
+            switchTab('student');
+        }
+
+        // Selection Toggle for Admin
+        function toggleSelection(id) {
+            const item = submissions.find(s => s.id === id);
+            if (item) {
+                item.selected = !item.selected;
+                saveData();
+                renderSubmissions();
+                updateCounts();
+            }
+        }
+
+        function toggleSelectAll() {
+            const currentItems = getFilteredItems();
+            const allSelected = currentItems.every(i => i.selected);
+            
+            currentItems.forEach(i => {
+                i.selected = !allSelected;
+            });
+
+            saveData();
+            renderSubmissions();
+            updateCounts();
+        }
+
+        function deleteItem(id) {
+            if (confirm('A jeni të sigurt që dëshironi ta fshini këtë me përhershmëri?')) {
+                submissions = submissions.filter(s => s.id !== id);
+                saveData();
+                renderSubmissions();
+                updateCounts();
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('A jeni të sigurt që dëshironi të fshini TË GJITHA ankesat dhe kërkesat?')) {
+                submissions = [];
+                saveData();
+                renderSubmissions();
+                updateCounts();
+            }
+        }
+
+        // Filter Logic
+        function filterItems(type) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = 'filter-btn bg-slate-100 text-slate-600 hover:bg-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition';
+            });
+
+            const activeBtn = document.getElementById(`filter-${type}`);
+            if (activeBtn) {
+                activeBtn.className = 'filter-btn bg-indigo-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition';
+            }
+
+            renderSubmissions();
+        }
+
+        function getFilteredItems() {
+            if (currentFilter === 'Ankesë') return submissions.filter(s => s.type === 'Ankesë');
+            if (currentFilter === 'Kërkesë') return submissions.filter(s => s.type === 'Kërkesë');
+            if (currentFilter === 'selected') return submissions.filter(s => s.selected);
+            return submissions;
+        }
+
+        // Count Updater
+        function updateCounts() {
+            const total = submissions.length;
+            const ankesa = submissions.filter(s => s.type === 'Ankesë').length;
+            const kerkesa = submissions.filter(s => s.type === 'Kërkesë').length;
+            const selected = submissions.filter(s => s.selected).length;
+
+            document.getElementById('cnt-all').textContent = total;
+            document.getElementById('cnt-ankesa').textContent = ankesa;
+            document.getElementById('cnt-kerkesa').textContent = kerkesa;
+            document.getElementById('cnt-selected').textContent = selected;
+            document.getElementById('selected-count').textContent = selected;
+        }
+
+        // Render List in Admin View
+        function renderSubmissions() {
+            const container = document.getElementById('submissions-list');
+            const emptyState = document.getElementById('empty-state');
+            const items = getFilteredItems();
+
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `p-5 rounded-2xl border transition-all ${
+                    item.selected 
+                    ? 'bg-indigo-50/40 border-indigo-500 shadow-md ring-1 ring-indigo-500' 
+                    : 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
+                }`;
+
+                const priorityColors = {
+                    'E Ulët': 'bg-slate-100 text-slate-600',
+                    'Mesatare': 'bg-amber-100 text-amber-700',
+                    'E Lartë': 'bg-rose-100 text-rose-700 font-bold'
+                };
+
+                const typeBadge = item.type === 'Ankesë' 
+                    ? '<span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"><i class="fa-solid fa-circle-exclamation mr-1"></i> Ankesë</span>'
+                    : '<span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"><i class="fa-solid fa-lightbulb mr-1"></i> Kërkesë</span>';
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                        <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                            ${typeBadge}
+                            <span class="text-xs px-2.5 py-0.5 rounded-full ${priorityColors[item.priority]}">${item.priority}</span>
+                            <span class="text-xs text-slate-400"><i class="fa-regular fa-folder mr-1"></i>${item.category}</span>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleSelection('${item.id}')" class="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                        </label>
+                    </div>
+
+                    <h3 class="font-bold text-slate-900 text-base mb-1">${escapeHtml(item.title)}</h3>
+                    <p class="text-slate-600 text-sm mb-4 leading-relaxed">${escapeHtml(item.description)}</p>
+
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                        <div class="flex items-center space-x-2">
+                            <span><i class="fa-regular fa-user mr-1"></i>${escapeHtml(item.sender)}</span>
+                            <span>•</span>
+                            <span><i class="fa-regular fa-calendar mr-1"></i>${item.date}</span>
+                        </div>
+                        <button onclick="deleteItem('${item.id}')" class="text-red-400 hover:text-red-600 transition p-1" title="Fshij">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Helper to escape HTML characters safely
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Generate PDF using html2pdf.js
+        function generatePDF() {
+            const selectedItems = submissions.filter(s => s.selected);
+
+            if (selectedItems.length === 0) {
+                showAdminToast('Lutemi zgjidhni së paku një ankesë apo kërkesë (me checkbox) për të gjeneruar dokumentin PDF!', 'warning');
+                return;
+            }
+
+            // Populate PDF Template
+            document.getElementById('pdf-date').textContent = new Date().toLocaleDateString('sq-AL');
+            document.getElementById('pdf-total-items').textContent = selectedItems.length;
+
+            const tableBody = document.getElementById('pdf-table-body');
+            tableBody.innerHTML = '';
+
+            selectedItems.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+
+                tr.innerHTML = `
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">${index + 1}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; font-weight: 600; color: ${item.type === 'Ankesë' ? '#b45309' : '#4338ca'};">${item.type}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; color: #475569;">${escapeHtml(item.category)}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1;">
+                        <strong style="color: #0f172a; display: block; margin-bottom: 2px;">${escapeHtml(item.title)}</strong>
+                        <span style="color: #334155; line-height: 1.4;">${escapeHtml(item.description)}</span>
+                    </td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; color: #475569;">${escapeHtml(item.sender)}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: 600;">${item.priority}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Show PDF container temporarily for capture
+            const container = document.getElementById('pdf-container');
+            const element = document.getElementById('pdf-content');
+            container.style.display = 'block';
+
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     `Raporti_i_Klases_${new Date().toISOString().slice(0,10)}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Run HTML2PDF
+            html2pdf().set(opt).from(element).save().then(() => {
+                container.style.display = 'none';
+                showAdminToast('Dokumenti PDF u shkarkua me sukses!', 'success');
+            }).catch(err => {
+                container.style.display = 'none';
+                showAdminToast('Gabim gjatë gjenerimit të PDF-së. Provo përsëri!', 'error');
+            });
+        }
+
+        // Show Toast Notifications in Admin
+        function showAdminToast(msg, type) {
+            const toast = document.getElementById('admin-toast');
+            let bgClasses = 'bg-indigo-50 text-indigo-800 border-indigo-200';
+            
+            if (type === 'warning') bgClasses = 'bg-amber-50 text-amber-800 border-amber-200';
+            if (type === 'error') bgClasses = 'bg-red-50 text-red-800 border-red-200';
+            if (type === 'success') bgClasses = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+
+            toast.className = `p-4 rounded-xl text-sm font-medium flex items-center justify-between border ${bgClasses} shadow-sm`;
+            toast.innerHTML = `
+                <span>${msg}</span>
+                <button onclick="this.parentElement.classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
